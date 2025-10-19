@@ -1,5 +1,5 @@
 // Define the pin connected to the buzzer's transistor base
-const int BUZZER_PIN = 15; // Corresponds to GPIO15 or pin D15
+const int BUZZER_PIN = 23; // Corresponds to GPIO15 or pin D15
 
 void setup() {
   // Set the buzzer pin as an output
