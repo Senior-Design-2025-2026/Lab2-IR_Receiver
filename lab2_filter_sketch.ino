@@ -16,7 +16,7 @@
 
 WiFiClient client;
 
-int analogPin = 34;     // Specify analog input pin. 
+int analogPin = 15;     // Specify analog input pin. 
 const int BUZZER_PIN = 23; // Corresponds to GPIO15 or pin D15
 
 // num and den are the numerator and denominator coeffs of a digital frequency-selective filter
