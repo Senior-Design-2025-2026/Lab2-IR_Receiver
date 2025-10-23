@@ -4,6 +4,7 @@
 // revised N. Najeeb, 2025
 
 #include <WiFi.h>
+#include <ctime>
 
 #define WIFI_SSID "UI-DeviceNet"
 #define WIFI_PASSWORD "UI-DeviceNet"
@@ -71,129 +72,125 @@ void setup()
 
 void loop()
 {
-   unsigned long t1;
-   int i,count,val;
-   int k=0;
-   float changet = micros();
-
-   count = 0;
-   void loop()
-{
     unsigned long t1;
     int i,count,val;
-    // float changet = micros(); // changet is reset every time loop() runs, which is incorrect in Arduino.
-    // However, in your original code, the logic jumps to while(1) immediately, so this is okay.
-    // For clarity and standard practice, it's best to declare it outside loop() or rely on the while(1) structure.
-    
-    // Note: 'count' and 'k' are not used and can be removed for cleaner code.
-    
-    // We maintain changet as a local variable since your original structure relies on the
-    // infinite while(1) loop nested inside the standard Arduino loop().
+    int k=0;
+    float changet = micros();
+
+    count = 0;
+    unsigned long t1;
+    int i,count,val;
+
     float changet = micros(); 
 
     while (1) {
-        t1 = micros();
+    t1 = micros();
 
-        // Shift samples
-        for(i=n-1; i>0; i--){
-            x[i] = x[i-1];
-            y[i] = y[i-1];
-        }
-        
-        // Shift absolute output for hysteresis
-        for(i=m-1; i>0; i--){
-            s[i] = s[i-1];
-        }
-        
-        val = analogRead(analogPin);  // New input
+    // Shift samples
+    for(i=n-1; i>0; i--){
+        x[i] = x[i-1];
+        y[i] = y[i-1];
+    }
 
-        // Scale to match ADC resolution and range: (0-4095) * (3.3/4095) - 1.65 (Center-shifted)
-        x[0] = val * (3.3 / 4095.0) - 1.65;
+    // Shift absolute output for hysteresis
+    for(i=m-1; i>0; i--){
+        s[i] = s[i-1];
+    }
 
-        // Calculate the next output y[0] using the difference equation
-        y_n = num[0] * x[0];
-        
-        for(i=1; i<n; i++) {
-            y_n = y_n - den[i]* y[i] + num[i] * x[i];
-        }
-        
-        y[0] = y_n; // Store the new output
+    val = analogRead(analogPin);  // New input
 
-        s[0] = abs(2*y_n); // Absolute value of the filter output.
+    // Scale to match ADC resolution and range: (0-4095) * (3.3/4095) - 1.65 (Center-shifted)
+    x[0] = val * (3.3 / 4095.0) - 1.65;
 
-        // Hysteresis: Take the max of the past 'm' samples
-        float maxs = 0;
-        for(int i = 0; i < m; i++)
+    // Calculate the next output y[0] using the difference equation
+    y_n = num[0] * x[0];
+
+    for(i=1; i<n; i++) {
+        y_n = y_n - den[i]* y[i] + num[i] * x[i];
+    }
+
+    y[0] = y_n; // Store the new output
+
+    s[0] = abs(2*y_n); // Absolute value of the filter output.
+
+    // Hysteresis: Take the max of the past 'm' samples
+    float maxs = 0;
+    for(int i = 0; i < m; i++)
+    {
+        if (s[i] > maxs)
+            maxs = s[i];
+    }
+
+    if ((micros() - changet) > 1000000)
+    {
+        Serial.print("Max Filter Output: ");
+        Serial.println(maxs);
+
+        changet = micros();
+
+        // Alarm should go off when this is triggered
+        if (maxs < threshold_val)
         {
-            if (s[i] > maxs)
-                maxs = s[i];
+            is_alarm_active = true;
+        }
+        else
+        {
+            is_alarm_active = false;
+            // Reset the email sent flag
+            email_sent_flag = false;
         }
 
-        if ((micros() - changet) > 1000000)
+        if (is_alarm_active) 
         {
-            Serial.print("Max Filter Output: ");
-            Serial.println(maxs);
+            digitalWrite(BUZZER_PIN, HIGH);
+        } 
+        else 
+        {
+            digitalWrite(BUZZER_PIN, LOW);
+        }
 
-            changet = micros();
-
-            // Alarm is triggered when the filtered signal is BELOW the threshold (beam broken)
-            if (maxs < threshold_val)
+        // Only proceed if alarm is active and email has not been sent
+        if (is_alarm_active && !email_sent_flag) 
+        {
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println("Warning: Wi-Fi lost, cannot send email.");
+            } 
+            else if (!client.connect(SMTP_HOST, SMTP_PORT))
             {
-                // Beam Broken: Activate Alarm State
-                is_alarm_active = true;
+                Serial.println("Connection to SMTP server failed");
             }
             else
             {
-                // Beam Connected: Clear Alarm State
-                is_alarm_active = false;
-                email_sent_flag = false;
-            }
+                // Get the current time
+                time_t now = time(nullptr); 
+                tm* local = localtime(&now);
 
-            if (is_alarm_active) 
-            {
-                digitalWrite(BUZZER_PIN, HIGH);
-            } 
-            else 
-            {
-                digitalWrite(BUZZER_PIN, LOW);
-            }
+                string dayAndTime = 
+                    to_string(local->tm_hour) + ":" + to_string(local->tm_min) + ":" + to_string(local->tm_sec) + " on " +
+                    to_string(local->tm_mon + 1) + "/" + to_string(local->tm_mday) + "/" + to_string(local->tm_year + 1900);
 
-            // Only proceed if alarm is active AND email has NOT been sent for this event
-            if (is_alarm_active && !email_sent_flag) 
-            {
-                if (WiFi.status() != WL_CONNECTED) {
-                    Serial.println("Warning: Wi-Fi lost, cannot send email.");
-                } 
-                else if (!client.connect(SMTP_HOST, SMTP_PORT))
-                {
-                    Serial.println("Connection to SMTP server failed");
-                }
-                else
-                {
-                    // Basic SMTP conversation
-                    client.println("HELO esp32");
-                    client.println("MAIL FROM:<" AUTHOR_EMAIL ">");
-                    client.println("RCPT TO:<" RECIPIENT_EMAIL ">");
-                    client.println("DATA");
-                    client.println("Subject: Beam Break Alert!");
-                    client.println("The IR beam connection was broken.");
-                    client.println(".");
-                    client.println("QUIT");
-                    client.stop(); // Close connection
-                    
-                    Serial.println("Email alert sent successfully!");
-                    email_sent_flag = true; // <<< CRITICAL: Prevent re-sending
-                }
+                // Basic SMTP conversation
+                client.println("HELO esp32");
+                client.println("MAIL FROM:<" AUTHOR_EMAIL ">");
+                client.println("RCPT TO:<" RECIPIENT_EMAIL ">");
+                client.println("DATA");
+                client.println("Subject: Critical Safety Alert");
+                client.println("Critical Safety Event at " + dayAndTime);
+                client.println(".");
+                client.println("QUIT");
+                client.stop(); // Close connection
+                
+                Serial.println("Email alert sent successfully!");
+                email_sent_flag = true; // Only send the email once
             }
         }
-        
-        if((micros()-t1) > Ts)
-        {
-            // If this happens, your filtering/logic took too long (> 500 us)
-            Serial.println("MISSED A SAMPLE");
-        }
-        
-        // Block until the 500 us interval (Ts) has passed
-        while((micros()-t1) < Ts);
+    }
+
+    if((micros()-t1) > Ts)
+    {
+        Serial.println("MISSED A SAMPLE");
+    }
+
+    while((micros()-t1) < Ts);
     }
 }
