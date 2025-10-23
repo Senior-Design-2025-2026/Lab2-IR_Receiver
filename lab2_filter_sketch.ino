@@ -78,10 +78,6 @@ void loop()
     float changet = micros();
 
     count = 0;
-    unsigned long t1;
-    int i,count,val;
-
-    float changet = micros(); 
 
     while (1) {
     t1 = micros();
@@ -165,9 +161,9 @@ void loop()
                 time_t now = time(nullptr); 
                 tm* local = localtime(&now);
 
-                string dayAndTime = 
-                    to_string(local->tm_hour) + ":" + to_string(local->tm_min) + ":" + to_string(local->tm_sec) + " on " +
-                    to_string(local->tm_mon + 1) + "/" + to_string(local->tm_mday) + "/" + to_string(local->tm_year + 1900);
+                std::string dayAndTime = 
+                    std::to_string(local->tm_hour) + ":" + std::to_string(local->tm_min) + ":" + std::to_string(local->tm_sec) + " on " +
+                    std::to_string(local->tm_mon + 1) + "/" + std::to_string(local->tm_mday) + "/" + std::to_string(local->tm_year + 1900);
 
                 // Basic SMTP conversation
                 client.println("HELO esp32");
@@ -175,7 +171,8 @@ void loop()
                 client.println("RCPT TO:<" RECIPIENT_EMAIL ">");
                 client.println("DATA");
                 client.println("Subject: Critical Safety Alert");
-                client.println("Critical Safety Event at " + dayAndTime);
+                client.print("Critical Safety Event at ");
+                client.println(dayAndTime.c_str());
                 client.println(".");
                 client.println("QUIT");
                 client.stop(); // Close connection
