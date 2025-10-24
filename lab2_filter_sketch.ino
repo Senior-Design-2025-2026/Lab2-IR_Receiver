@@ -17,20 +17,20 @@
 
 WiFiClient client;
 
-int analogPin = 15;     // Specify analog input pin. 
-const int BUZZER_PIN = 23; // Corresponds to GPIO15 or pin D15
+int analogPin = 32;     // Specify analog input pin. 
+const int BUZZER_PIN = 23; // Corresponds to GPIO23
 
 // num and den are the numerator and denominator coeffs of a digital frequency-selective filter
 // designed for a sample rate Fs=2000 HZ
 
-const int n = 10;   // number of past input and output samples to buffer; change this to match order of your filter
+const int n = 11;   // number of past input and output samples to buffer; change this to match order of your filter
 int m = 10; // number of past outputs to average for hysteresis
 
 float den[] = {1, -2.10007517706225, 6.45525419156908, -8.65572833763769, 14.0428045937685, -12.7032216008626, 13.4011439722928, -7.88138375259155, 5.60915797650072, -1.74034180145190, 0.790812825614102}; //Denominator Coefficients
 float num[] = {0.000184579082014068, -0.000270420331775373, 0.000481723705391312, -0.000411438996736231, 0.000325864338053812, 0, -0.000325864338053812, 0.000411438996736231, -0.000481723705391312, 0.000270420331775373, -0.000184579082014068}; //Numerator Coefficients
 
 
-float x[n],y[n],y_n, s[10];     // Space to hold previous samples and outputs; n'th order filter will require upto n samples buffered
+float x[n],y[n],y_n, s[11];     // Space to hold previous samples and outputs; n'th order filter will require upto n samples buffered
 
 float threshold_val = 0.2; // Threshold value
 
@@ -94,6 +94,7 @@ void loop()
     }
 
     val = analogRead(analogPin);  // New input
+    Serial.print(val);
 
     // Scale to match ADC resolution and range: (0-4095) * (3.3/4095) - 1.65 (Center-shifted)
     x[0] = val * (3.3 / 4095.0) - 1.65;
