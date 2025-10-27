@@ -160,11 +160,16 @@ void loop()
             {
                 // Get the current time
                 time_t now = time(nullptr); 
-                tm* local = localtime(&now);
+                std::string dayAndTime;
 
-                std::string dayAndTime = 
-                    std::to_string(local->tm_hour) + ":" + std::to_string(local->tm_min) + ":" + std::to_string(local->tm_sec) + " on " +
-                    std::to_string(local->tm_mon + 1) + "/" + std::to_string(local->tm_mday) + "/" + std::to_string(local->tm_year + 1900);
+                if (now == (time_t)(-1)) {
+                    dayAndTime = "Error: time() failed";
+                } else {
+                    tm* local = localtime(&now);
+                    dayAndTime = 
+                        std::to_string(local->tm_hour) + ":" + std::to_string(local->tm_min) + ":" + std::to_string(local->tm_sec) + " on " +
+                        std::to_string(local->tm_mon + 1) + "/" + std::to_string(local->tm_mday) + "/" + std::to_string(local->tm_year + 1900);
+                }
 
                 // Basic SMTP conversation
                 client.println("HELO esp32");
