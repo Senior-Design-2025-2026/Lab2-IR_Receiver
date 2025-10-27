@@ -5,6 +5,7 @@
 
 #include <WiFi.h>
 #include "time.h"
+#include <ctime>
 
 #define WIFI_SSID "UI-DeviceNet"
 #define WIFI_PASSWORD "UI-DeviceNet"
@@ -74,8 +75,7 @@ void setup()
    Serial.println(WiFi.localIP());  
 
    // Init and get the time
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  printLocalTime();
+   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
 
 void loop()
@@ -166,12 +166,13 @@ void loop()
             }
             else
             {
+                try {
                 // Get the current time
                 struct tm timeinfo;
-                getLocalTime(&timeinfo)
+                getLocalTime(&timeinfo);
                 
                 char buffer[64];
-                std::strftime(buffer, sizeof(buffer), "%A, %B %d %Y %H:%M:%S", &timeinfo);
+                strftime(buffer, sizeof(buffer), "%H:%M:%S on %B/%d/%Y", &timeinfo);
 
                 std::string dayAndTime = buffer;  // Convert to std::string
 
@@ -189,6 +190,10 @@ void loop()
                 
                 Serial.println("Email alert sent successfully!");
                 email_sent_flag = true; // Only send the email once
+                }
+                catch (const std::exception& e) {
+                    Serial.println(e.what()); 
+                }
             }
         }
     }
