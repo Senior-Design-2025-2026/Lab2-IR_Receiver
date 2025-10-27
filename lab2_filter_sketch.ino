@@ -17,7 +17,7 @@
 #define RECIPIENT_EMAIL "sage-marks@uiowa.edu"
 
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 18000;
+const long  gmtOffset_sec = -18000;
 const int   daylightOffset_sec = 0;
 
 WiFiClient client;
@@ -172,9 +172,23 @@ void loop()
                 getLocalTime(&timeinfo);
                 
                 char buffer[64];
-                strftime(buffer, sizeof(buffer), "%H:%M:%S on %B/%d/%Y", &timeinfo);
+                std::string amPm = "AM";
+                timeinfo.tm_hour += 1;
 
-                std::string dayAndTime = buffer;  // Convert to std::string
+                if (timeinfo.tm_hour > 12) {
+                    timeinfo.tm_hour = timeinfo.tm_hour - 12;
+                    amPm = "PM";
+                }
+                
+                strftime(buffer, sizeof(buffer), "%I:%M", &timeinfo);
+
+                size_t used = strlen(buffer);
+                snprintf(buffer + used, sizeof(buffer) - used, " %s", amPm.c_str());
+
+                used = strlen(buffer);
+                snprintf(buffer + used, sizeof(buffer) - used, " on %B/%d/%Y", &timeinfo);
+
+                std::string dayAndTime = buffer;
 
                 // Basic SMTP conversation
                 client.println("HELO esp32");
