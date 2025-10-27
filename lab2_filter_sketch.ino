@@ -102,7 +102,6 @@ void loop()
     }
 
     val = analogRead(analogPin);  // New input
-    Serial.print(val);
 
     // Scale to match ADC resolution and range: (0-4095) * (3.3/4095) - 1.65 (Center-shifted)
     x[0] = val * (3.3 / 4095.0) - 1.65;
@@ -167,43 +166,41 @@ void loop()
             else
             {
                 try {
-                // Get the current time
-                struct tm timeinfo;
-                getLocalTime(&timeinfo);
-                
-                char buffer[64];
-                std::string amPm = "AM";
-                timeinfo.tm_hour += 1;
+                    // Get the current time
+                    struct tm timeinfo;
+                    getLocalTime(&timeinfo);
+                    
+                    char buffer[64];
+                    std::string amPm = "AM";
 
-                if (timeinfo.tm_hour > 12) {
-                    timeinfo.tm_hour = timeinfo.tm_hour - 12;
-                    amPm = "PM";
-                }
-                
-                strftime(buffer, sizeof(buffer), "%I:%M", &timeinfo);
+                    if (timeinfo.tm_hour > 12) {
+                        timeinfo.tm_hour = timeinfo.tm_hour - 12;
+                        amPm = "PM";
+                    } else if (timeinfo.tm_hour == 0) {
+                        timeinfo.tm_hour = 12;
+                        amPm = "PM";
+                    }
+                    
+                    const char* format = (amPm == "PM") ? "%I:%M PM on %B/%d/%Y" : "%I:%M AM on %B/%d/%Y";
 
-                size_t used = strlen(buffer);
-                snprintf(buffer + used, sizeof(buffer) - used, " %s", amPm.c_str());
+                    strftime(buffer, sizeof(buffer), format, &timeinfo);
 
-                used = strlen(buffer);
-                snprintf(buffer + used, sizeof(buffer) - used, " on %B/%d/%Y", &timeinfo);
+                    std::string dayAndTime = buffer;
 
-                std::string dayAndTime = buffer;
-
-                // Basic SMTP conversation
-                client.println("HELO esp32");
-                client.println("MAIL FROM:<" AUTHOR_EMAIL ">");
-                client.println("RCPT TO:<" RECIPIENT_EMAIL ">");
-                client.println("DATA");
-                client.println("Subject: Critical Safety Alert");
-                client.print("Critical Safety Event at ");
-                client.println(dayAndTime.c_str());
-                client.println(".");
-                client.println("QUIT");
-                client.stop(); // Close connection
-                
-                Serial.println("Email alert sent successfully!");
-                email_sent_flag = true; // Only send the email once
+                    // Basic SMTP conversation
+                    client.println("HELO esp32");
+                    client.println("MAIL FROM:<" AUTHOR_EMAIL ">");
+                    client.println("RCPT TO:<" RECIPIENT_EMAIL ">");
+                    client.println("DATA");
+                    client.println("Subject: Critical Safety Alert");
+                    client.print("Critical Safety Event at ");
+                    client.println(dayAndTime.c_str());
+                    client.println(".");
+                    client.println("QUIT");
+                    client.stop(); // Close connection
+                    
+                    Serial.println("Email alert sent successfully!");
+                    email_sent_flag = true; // Only send the email once
                 }
                 catch (const std::exception& e) {
                     Serial.println(e.what()); 
