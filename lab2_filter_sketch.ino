@@ -4,7 +4,7 @@
 // revised N. Najeeb, 2025
 
 #include <WiFi.h>
-#include <ctime>
+#include "time.h"
 
 #define WIFI_SSID "UI-DeviceNet"
 #define WIFI_PASSWORD "UI-DeviceNet"
@@ -14,6 +14,10 @@
 
 #define AUTHOR_EMAIL "seniordesignteam3@uiowa.edu"
 #define RECIPIENT_EMAIL "sage-marks@uiowa.edu"
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 18000;
+const int   daylightOffset_sec = 0;
 
 WiFiClient client;
 
@@ -68,6 +72,10 @@ void setup()
    Serial.println();
    Serial.print("Connected with IP: ");
    Serial.println(WiFi.localIP());  
+
+   // Init and get the time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  printLocalTime();
 }
 
 void loop()
@@ -159,17 +167,13 @@ void loop()
             else
             {
                 // Get the current time
-                time_t now = time(nullptr); 
-                std::string dayAndTime;
+                struct tm timeinfo;
+                getLocalTime(&timeinfo)
+                
+                char buffer[64];
+                std::strftime(buffer, sizeof(buffer), "%A, %B %d %Y %H:%M:%S", &timeinfo);
 
-                if (now == (time_t)(-1)) {
-                    dayAndTime = "Error: time() failed";
-                } else {
-                    tm* local = localtime(&now);
-                    dayAndTime = 
-                        std::to_string(local->tm_hour) + ":" + std::to_string(local->tm_min) + ":" + std::to_string(local->tm_sec) + " on " +
-                        std::to_string(local->tm_mon + 1) + "/" + std::to_string(local->tm_mday) + "/" + std::to_string(local->tm_year + 1900);
-                }
+                std::string dayAndTime = buffer;  // Convert to std::string
 
                 // Basic SMTP conversation
                 client.println("HELO esp32");
